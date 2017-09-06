@@ -5,6 +5,8 @@ import threading
 import feedparser
 import cgi
 import HTMLParser
+import os
+import sys
 
 #The time duration (in seconds) prior to first network
 #dependency...
@@ -20,7 +22,7 @@ class colorCodes:
 URL = 'https://forum.odroid.com/feed.php'
 
 #The interval between each attempted feed update poll...
-pollUpdate = 1800
+pollUpdate = 5
 
 #Set Twitter API reference in global scope...
 twitter = False
@@ -36,15 +38,26 @@ from keys import (
 
 #Program script main function...
 def initialize():
+	print __file__
+	print str(os.path.dirname(__file__))
+	try:
+		logFile = open(os.path.dirname(__file__)+'/logFile.txt','a')
+	except:
+		logFile = open(os.path.dirname(__file__)+'/logFile.txt','w')
+
+	logFile.write("=========================="+'\n')
 
 	print colored('Initializing the program...',colorCodes.OK)
+	logFile.write('Initializing the program...\n')
 	#Set a time delay to allow the computer to reset its clock to
 	#accurate time prior to making network requets...
 	print colored('Waiting for clock caliboration...',colorCodes.OK)
+	logFile.write('Waiting for clock caliboration...\n')
 	#Set timeout to allow clock caliboration...
 	time.sleep(initializeTime)
 	#Create a Twitter API object instance...
 	print colored('Connecting to Twitter...',colorCodes.OK)
+	logFile.write('Connecting to Twitter...\n')
 	try:
 		global twitter
 		twitter = Twython(
@@ -55,9 +68,11 @@ def initialize():
 		)
 	except:
 		print colored('Unable to connect to Twitter!',colorCodes.ERR)
+		logFile.write('Unable to connect to Twitter!\n')
 
 
 	print colored('Connected to Twitter!',colorCodes.OK)
+	logFile.write('Connected to Twitter!\n')
 	
 	#Poll the RSS feed...
 	pollRSS()
@@ -72,12 +87,11 @@ def pollRSS():
 			twitter.update_status(status=message)
 		except Exception, e:
 			print colored('Error Tweeting the message. '+str(e),colorCodes.ERR)		
+			logFile.write('Error Tweeting the message.'+str(e)+'\n')
 
 		return
 
 	print colored('Polling for new RSS information...',colorCodes.OK)
-	#Set this function to interate again...
-	threading.Timer(pollUpdate,pollRSS).start()
 
 	#Load and parse the RSS feed...
 	try:
@@ -86,7 +100,7 @@ def pollRSS():
 		print colored('Error accessing and parsing from the specified URL!',colorCodes.ERR)
 
 	#Open the ID storage file for both reading and writing...
-	idFile = open('id/id.txt','r+')
+	idFile = open('/home/odroid/twitterBot/v0.8/id/id.txt','r+')
 
 	#Open the ID file...
 	idFile.seek(0)
@@ -125,6 +139,7 @@ def pollRSS():
 				idFile.seek(0)
 				idFile.truncate()
 				idFile.write(cgi.escape(feed.entries[0].id))
+				idFile.close()
 			else:
 				print colored('There are no new RSS posts.',colorCodes.OK)
 		except:
@@ -137,6 +152,9 @@ def pollRSS():
 			idFile.truncate()
 			idFile.write(cgi.escape(feed.entries[-1].id))
 			idFile.close()
+
+	#Set this function to iterate again...
+	threading.Timer(pollUpdate,pollRSS).start()
 
 	return
 	

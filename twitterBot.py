@@ -22,7 +22,7 @@ class colorCodes:
 URL = 'https://forum.odroid.com/feed.php'
 
 #The interval between each attempted feed update poll...
-pollUpdate = 5
+pollUpdate = 1800
 
 #Set Twitter API reference in global scope...
 twitter = False
